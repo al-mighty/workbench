@@ -72,7 +72,8 @@ const createFullDir = (paths, endedOperation) => {
   const folderPath = paths[0]
   paths.splice(0, 1);
 
-  if (!fs.existsSync(folderPath)) fs.mkdir(folderPath, handleMkDir(paths, folderPath, endedOperation));
+  if (!fs.existsSync(folderPath)) {
+    fs.mkdir(folderPath, handleMkDir(paths, folderPath, endedOperation));
   } else if (paths.length > 0) {
     paths[0] = path.join(folderPath, paths[0]);
     createFullDir(paths, endedOperation);
@@ -96,7 +97,6 @@ const endedOperation = () => {
   listFiles.forEach(item => {
     const char = item.filename.charAt(0).toUpperCase();
     const fullPath = path.join(resultFolder, char, item.filename);
-
     createFullDir([resultFolder, char], handleDirCreated(item.fullPathFile, fullPath));
   });
 };
@@ -119,7 +119,6 @@ const readFileOrFolder = (fullPathFile, filename, addFileInList, endedOperation)
 //readData
 const readContents = (currentFolder, onFilePushed, endedOperation) => (err, files) => {
   scanError(err);
-
   counterFiles += files.length;
   if (!counterFiles) {
     endedOperation();
@@ -128,6 +127,8 @@ const readContents = (currentFolder, onFilePushed, endedOperation) => (err, file
 
   files.forEach(filename => {
     const fullPathFile = path.join(currentFolder, filename);
+    console.log('pathFile= ', fullPathFile);
+    // console.log('current file = ', filename);
     fs.stat(fullPathFile, readFileOrFolder(fullPathFile, filename, onFilePushed, endedOperation))
   })
 };
