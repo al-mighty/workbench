@@ -69,22 +69,10 @@ const deleteSourceFiles = (folder) => {
 };
 
 const createFullDir = (paths, endedOperation) => {
-  console.log('createFullDir ?! = ', paths[0])
-  const folderPath = paths[0];
-  console.log('folderPath ?! = ', folderPath)
-  // console.log("PathS = ");
-  // console.log(paths);
-  // console.log('endedOperation = ');
-  // console.log(endedOperation);
+  const folderPath = paths[0]
   paths.splice(0, 1);
-  // console.log("PathS = ");
-  // console.log(paths);
 
-  if (!fs.existsSync(folderPath)) {
-    // console.log('folderPath для mkdir - =');
-    // console.log(folderPath);
-    // console.log("в мкдир отправляю");
-    fs.mkdir(folderPath, handleMkDir(paths, folderPath, endedOperation));
+  if (!fs.existsSync(folderPath)) fs.mkdir(folderPath, handleMkDir(paths, folderPath, endedOperation));
   } else if (paths.length > 0) {
     paths[0] = path.join(folderPath, paths[0]);
     createFullDir(paths, endedOperation);
@@ -105,15 +93,9 @@ const removeFolder = (err) => {
 const handleDirCreated = (sourceFolder, resultFolder) => () => fs.copyFile(sourceFolder, resultFolder, removeFolder);
 
 const endedOperation = () => {
-  console.log('ENDDD');
-  console.log(listFiles);
   listFiles.forEach(item => {
     const char = item.filename.charAt(0).toUpperCase();
     const fullPath = path.join(resultFolder, char, item.filename);
-    console.log('thirt param');
-    console.log(resultFolder);
-    console.log(char);
-    console.log(item.filename);
 
     createFullDir([resultFolder, char], handleDirCreated(item.fullPathFile, fullPath));
   });
@@ -127,7 +109,6 @@ const readFileOrFolder = (fullPathFile, filename, addFileInList, endedOperation)
     --counterFiles;
   } else if (addFileInList) {
     addFileInList(fullPathFile, filename);
-    console.log('counterFilessssssss =', counterFiles);
 
     if (!--counterFiles) {
       endedOperation()
@@ -139,11 +120,7 @@ const readFileOrFolder = (fullPathFile, filename, addFileInList, endedOperation)
 const readContents = (currentFolder, onFilePushed, endedOperation) => (err, files) => {
   scanError(err);
 
-  console.log('files');
-  console.log(files);
-  console.log(counterFiles);
   counterFiles += files.length;
-  console.log(counterFiles)
   if (!counterFiles) {
     endedOperation();
   }
@@ -151,8 +128,6 @@ const readContents = (currentFolder, onFilePushed, endedOperation) => (err, file
 
   files.forEach(filename => {
     const fullPathFile = path.join(currentFolder, filename);
-    console.log('pathFile= ', fullPathFile);
-    // console.log('current file = ', filename);
     fs.stat(fullPathFile, readFileOrFolder(fullPathFile, filename, onFilePushed, endedOperation))
   })
 };
