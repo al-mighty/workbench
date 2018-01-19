@@ -3,12 +3,10 @@ const path = require('path');
 
 
 const sourceFolder = path.resolve(process.argv[2]);
-// const deleteFolder = process.argv[3] === '-delete';
 const resultFolder = path.resolve(process.argv[3]);
 
 const copyFile = (fileName, name, nPath) => {
   fs.copyFileSync(fileName, nPath + "/" + name);
-  // if (deleteFolder) delFile("./" + fileName);
 };
 
 const readDir = (base, level) => {
@@ -42,16 +40,6 @@ function makeNewDir(localBase, item, nDir) {
   });
 }
 
-// function delFile(nameFile) {
-//   console.log("Going to delete an existing file");
-//   fs.unlink(nameFile, function (err) {
-//     if (err) {
-//       return console.error(err);
-//     }
-//     console.log("File deleted successfully!");
-//   });
-// }
-
 function createResultFolder(resultFolder) {
   return new Promise((res, rej) => {
     if (fs.existsSync(resultFolder)) {
@@ -64,6 +52,7 @@ function createResultFolder(resultFolder) {
     }
   })
 }
+
 createResultFolder(resultFolder).then(function () {
     return new Promise((res, rej) => {
       try {
