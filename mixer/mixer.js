@@ -1,150 +1,76 @@
 const fs = require('fs');
 const path = require('path');
 
-const listFiles = [];
-let counterFiles = 0;
 
 const sourceFolder = path.resolve(process.argv[2]);
+// const deleteFolder = process.argv[3] === '-delete';
 const resultFolder = path.resolve(process.argv[3]);
-const deleteFolder = process.argv[4] === '-delete';
 
-console.log("SourceFolder = ", sourceFolder, ' будет удалена');
-console.log("ResultFOlder = ", resultFolder);
-
-const handleFilePushed = (fullPathFile, filename) => {
-  listFiles.push({fullPathFile, filename});
-  console.log('listFiles', listFiles)
+const copyFile = (fileName, name, nPath) => {
+  fs.copyFileSync(fileName, nPath + "/" + name);
+  // if (deleteFolder) delFile("./" + fileName);
 };
 
-const handleMkDir = (paths, folderPath, endedOperation) =>
-  (err) => {
-    scanError(err);
-
-    if (paths.length > 0) {
-      paths[0] = path.join(folderPath, paths[0]);
-      createFullDir(paths, endedOperation);
+const readDir = (base, level) => {
+  const files = fs.readdirSync(base);
+  files.forEach(item => {
+    let localBase = path.join(base, item);
+    let state = fs.statSync(localBase);
+    if (state.isDirectory()) {
+      console.log(' '.repeat(level) + 'Dir: ' + item);
+      readDir(localBase, level + 1);
     } else {
-      endedOperation();
+      console.log(' '.repeat(level) + 'File: ' + item);
+      let nDir = resultFolder + "/" + item.charAt(0);
+      console.log('item = ', item + '        ------- ndir = ', nDir);
+      console.log('localBase= ', localBase);
+      makeNewDir(localBase, item, nDir);
     }
-  };
-
-
-const handleStat = (folder) =>
-  (err, state) => {
-    scanError(err);
-
-    if (state && state.isDirectory()) {
-      deleteSourceFiles(folder);
-      counterFiles--;
-    } else {
-      fs.unlink(folder, scanError);
-      if (!--counterFiles) {
-        if (fs.existsSync(folder)) {
-          fs.rmdir(folder, (err) => scanError);
-        }
-      }
-    }
-  };
-
-const deleteFolderAction = (folder) => (err,listFiles)=>{
-  scanError(err);
-  counterFiles+=listFiles.length;
-  if(!counterFiles){
-    if (fs.existsSync(folder)) {
-      fs.rmdir(folder, (err) => scanError);
-    }
-  }
-  listFiles.forEach(file => {
-    const localPath = path.join(folder, file);
-
-    fs.stat(localPath, handleStat(localPath))
-  })
-};
-
-
-const deleteSourceFiles = (folder) => {
-  if (fs.existsSync(folder)) {
-    fs.readdir(folder, deleteFolderAction(folder));
-  }
-};
-
-const createFullDir = (paths, endedOperation) => {
-  const folderPath = paths[0]
-  paths.splice(0, 1);
-
-  if (!fs.existsSync(folderPath)) {
-    fs.mkdir(folderPath, handleMkDir(paths, folderPath, endedOperation));
-  } else if (paths.length > 0) {
-    paths[0] = path.join(folderPath, paths[0]);
-    createFullDir(paths, endedOperation);
-  } else {
-    endedOperation();
-  }
-};
-
-const removeFolder = (err) => {
-  scanError(err);
-
-  if (deleteFolder) {
-    deleteSourceFiles(sourceFolder);
-  }
-};
-
-
-const handleDirCreated = (sourceFolder, resultFolder) => () => fs.copyFile(sourceFolder, resultFolder, removeFolder);
-
-const endedOperation = () => {
-  listFiles.forEach(item => {
-    const char = item.filename.charAt(0).toUpperCase();
-    const fullPath = path.join(resultFolder, char, item.filename);
-    createFullDir([resultFolder, char], handleDirCreated(item.fullPathFile, fullPath));
   });
 };
 
-//readFile
-const readFileOrFolder = (fullPathFile, filename, addFileInList, endedOperation) => (err, state) => {
-  scanError(err);
-  if (state.isDirectory()) {
-    scanFolder(fullPathFile, handleFilePushed, endedOperation);
-    --counterFiles;
-  } else if (addFileInList) {
-    addFileInList(fullPathFile, filename);
-
-    if (!--counterFiles) {
-      endedOperation()
+function makeNewDir(localBase, item, nDir) {
+  fs.mkdir(nDir, function (err) {
+    if (!err || (err && err.code === 'EEXIST')) {
+      console.log("Directory created successfully!");
+      copyFile(localBase, item, nDir);
+    } else if (err) {
+      return console.error(err);
     }
-  }
-};
+    console.log("Directory created successfully!");
+    copyFile(localBase, item, nDir);
+  });
+}
 
-//readData
-const readContents = (currentFolder, onFilePushed, endedOperation) => (err, files) => {
-  scanError(err);
-  counterFiles += files.length;
-  if (!counterFiles) {
-    endedOperation();
-  }
+// function delFile(nameFile) {
+//   console.log("Going to delete an existing file");
+//   fs.unlink(nameFile, function (err) {
+//     if (err) {
+//       return console.error(err);
+//     }
+//     console.log("File deleted successfully!");
+//   });
+// }
 
-
-  files.forEach(filename => {
-    const fullPathFile = path.join(currentFolder, filename);
-    console.log('pathFile= ', fullPathFile);
-    // console.log('current file = ', filename);
-    fs.stat(fullPathFile, readFileOrFolder(fullPathFile, filename, onFilePushed, endedOperation))
+function createResultFolder(resultFolder) {
+  return new Promise((res, rej) => {
+    if (fs.existsSync(resultFolder)) {
+      res();
+    } else {
+      fs.mkdir(resultFolder, function (err) {
+        if (err) return rej(err);
+      });
+      res();
+    }
   })
-};
-
-const scanFolder = (sourceFolder, isReadFile, endedOperation) => {
-  // if (fs.existsSync(sourceFolder))
-  fs.readdir(sourceFolder, readContents(sourceFolder, isReadFile, endedOperation));
-
-};
-
-const scanError = (err) => {
-  if (err) {
-    console.log(' =((( ', err.message)
+}
+createResultFolder(resultFolder).then(function () {
+    return new Promise((res, rej) => {
+      try {
+        res(readDir(sourceFolder, 0));
+      } catch (err) {
+        rej(err);
+      }
+    })
   }
-};
-
-
-// scanFolder(sourceFolder,scanError(err));
-scanFolder(sourceFolder, handleFilePushed, endedOperation);
+);
